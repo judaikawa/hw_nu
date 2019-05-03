@@ -1,0 +1,505 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Ligatures=TeX,Scale=MatchLowercase}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\hypersetup{unicode=true,
+            pdftitle={Untitled},
+            pdfborder={0 0 0},
+            breaklinks=true}
+\urlstyle{same}  % don't use monospace font for urls
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\IfFileExists{parskip.sty}{%
+\usepackage{parskip}
+}{% else
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{0}
+% Redefines (sub)paragraphs to behave more like sections
+\ifx\paragraph\undefined\else
+\let\oldparagraph\paragraph
+\renewcommand{\paragraph}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+\let\oldsubparagraph\subparagraph
+\renewcommand{\subparagraph}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+
+  \title{Untitled}
+    \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+    \author{}
+    \preauthor{}\postauthor{}
+    \date{}
+    \predate{}\postdate{}
+  
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+
+\begin{document}
+\maketitle
+
+This markdown contains the following sections:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \protect\hyperlink{puzzel-overview}{Puzzle Overview}
+\item
+  \protect\hyperlink{libraries}{Libraries}
+\item
+  \protect\hyperlink{reading-the-datasets}{Reading the Datasets}
+\item
+  \protect\hyperlink{data-cleaning}{Data Cleaning}
+\item
+  \protect\hyperlink{exploratory-data-analysis}{Exploratory Data
+  Analysis}
+\item
+  \protect\hyperlink{modeling}{Modeling}
+\item
+  \protect\hyperlink{conclusion}{Conclusion}
+\end{enumerate}
+
+\subsection{Puzzle Overview}\label{puzzle-overview}
+
+As a credit company, it is important to know beforehand who is able to
+pay their loans and who is not. The goal of this puzzle is to build a
+statistical/machine learning model to figure out which clients are able
+to honor their debit.
+
+The goal is to predict the probability of default, which is identified
+by the default variable in the training set. Thus, we are dealing with a
+\textbf{supervised} problem for a \textbf{binary classification} but
+rather than classes, the output should be the \textbf{probability.} The
+models that it is tested on this notebook are the Logistic Regression,
+Naive Bayes and Random Forest.
+
+\hypertarget{libraries}{\subsection{Libraries}\label{libraries}}
+
+The following libraries are required to run all the code presented in
+this notebook.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{library}\NormalTok{(knitr) }\CommentTok{# Markdown, LaTeX, HTML}
+\KeywordTok{library}\NormalTok{(dplyr) }\CommentTok{# for data manipulation}
+\KeywordTok{library}\NormalTok{(ggplot2) }\CommentTok{# for beautiful graphics}
+\KeywordTok{library}\NormalTok{(lubridate) }\CommentTok{# dealing with dates}
+\KeywordTok{library}\NormalTok{(caret) }\CommentTok{# classification and regression training}
+\KeywordTok{library}\NormalTok{(kableExtra)}
+\KeywordTok{library}\NormalTok{(DT)}
+\KeywordTok{library}\NormalTok{(corrplot) }\CommentTok{# for correlation plot}
+\KeywordTok{library}\NormalTok{(tidyr) }
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{reading-the-datasets}{\subsection{Reading the
+Datasets}\label{reading-the-datasets}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Reading the csv format data}
+\NormalTok{train <-}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{'puzzle_train_dataset.csv'}\NormalTok{)}
+\NormalTok{test <-}\StringTok{ }\KeywordTok{read.csv}\NormalTok{(}\StringTok{'puzzle_test_dataset.csv'}\NormalTok{)}
+
+\CommentTok{# }
+\KeywordTok{head}\NormalTok{(train,}\DecValTok{3}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{kable}\NormalTok{(}\DataTypeTok{caption=}\StringTok{'Train Dataset'}\NormalTok{) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{kable_styling}\NormalTok{() }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{scroll_box}\NormalTok{(}\DataTypeTok{width =} \StringTok{'100%'}\NormalTok{) }\CommentTok{# adding a scroll bar as it has many columns}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[t]
+
+\caption{\label{tab:unnamed-chunk-2}Train Dataset}
+\centering
+\begin{tabular}{l|l|l|l|r|r|r|r|r|r|r|r|l|r|l|l|l|l|l|l|l|l|r|r|r|r|r}
+\hline
+ids & default & score\_1 & score\_2 & score\_3 & score\_4 & score\_5 & score\_6 & risk\_rate & amount\_borrowed & borrowed\_in\_months & credit\_limit & reason & income & sign & gender & facebook\_profile & state & zip & channel & job\_name & real\_state & ok\_since & n\_bankruptcies & n\_defaulted\_loans & n\_accounts & n\_issues\\
+\hline
+810e3277-619e-3154-7ba0-ebddfc5f7ea9 & False & smzX0nxh5QlePvtVf6EAeg== & tHpS8e9F8d9zg3iOQM9tsA== & 710 & 104.17496 & 0.6615086 & 123.0153 & 0.43 & 20024.31 & 60 & 62386 & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhmLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiFzLXZNLyvbNs/gWFaHYSlv & 59869.05 & virg & f & True & xsd3ZdsI3356I3xMxZeiqQ== & i036nmJ7rfxo+3EvCD7Jnw== & NCqL3QBx0pscDnx3ixKwXg== & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhmLVIVxoGY7TUDJ1FyFoSIU6/nAzyh3ze+CBMzoYhVLg= & n+xK9CfX0bCn77lClTWviw== & 14 & 1 & 0 & 9 & 9\\
+\hline
+b4118fd5-77d5-4d80-3617-bacd7aaf1a88 & False & DGCQep2AE5QRkNCshIAlFQ== & RO7MTL+j4PH2gNzbhNTq/A== & 330 & 97.88080 & 0.5311155 & 110.9135 & 0.23 & 10046.51 & 36 & NA & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhmLVIVxoGY7TUDJ1FyFoSIRnhxgN2wGSznGRSVzckUrzPiO4/8HgZtQjTkkzkxoTJ & 46016.31 & sagi & f & False & xsd3ZdsI3356I3xMxZeiqQ== & oyrt7nHjoQSc58vCxgJF/w== & NCqL3QBx0pscDnx3ixKwXg== & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhkcGmRsnH2PPk1/G0Vqo9dliQr5fVUv6Nb3z4cdALTys= & n+xK9CfX0bCn77lClTWviw== & 75 & 0 & 0 & 3 & NA\\
+\hline
+a75638f1-4662-4f4f-044a-d649b676d85d & False & 8k8UDR4Yx0qasAjkGrUZLw== & wkeCdGeu5sEv4/fjwR0aDg== & 360 & 97.90893 & 0.6110858 & 104.6208 & 0.30 & 21228.25 & 60 & NA & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhmLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiFclpjjzsgiH9Kq4zwP9aJK & 48025.47 & libr & m & True & /L8vvVesB5WyAv190Hw/rQ== & BMIK35trMYhh9yVrcGg/oQ== & NCqL3QBx0pscDnx3ixKwXg== & mLVIVxoGY7TUDJ1FyFoSIZi1SFcaBmO01AydRchaEiGYtUhXGgZjtNQMnUXIWhIhoCnSWppOe9G37J0FP0/Jd1OMrGO6yWawXPKG7snwn08= & N5/CE7lSkAfB04hVFFwllw== & NA & 0 & 0 & 5 & NA\\
+\hline
+\end{tabular}
+\end{table}
+
+\hypertarget{data-cleaning}{\subsection{Data
+Cleaning}\label{data-cleaning}}
+
+We have 64592 rows in the train dataset with 27 columns. There are some
+numerical and some categorical variables. Let's take a look at what
+these variables looks like.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Creating a summary dataframe}
+\NormalTok{summary_df <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\StringTok{'var'}\NormalTok{ =}\StringTok{ }\KeywordTok{names}\NormalTok{(train), }
+                         \StringTok{'type'}\NormalTok{ =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{unlist}\NormalTok{(}\KeywordTok{lapply}\NormalTok{(train, class))), }
+                         \StringTok{'unique'}\NormalTok{ =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{unlist}\NormalTok{(}\KeywordTok{lapply}\NormalTok{(train, }\ControlFlowTok{function}\NormalTok{(x) }\KeywordTok{length}\NormalTok{(}\KeywordTok{unique}\NormalTok{(x))))), }
+                         \StringTok{'count_na_values'}\NormalTok{ =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{unlist}\NormalTok{(}\KeywordTok{lapply}\NormalTok{(train, }\ControlFlowTok{function}\NormalTok{(x) }\KeywordTok{sum}\NormalTok{(}\KeywordTok{is.na}\NormalTok{(x))))),}
+                         \StringTok{'first_obs'}\NormalTok{ =}\StringTok{ }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{unlist}\NormalTok{(}\KeywordTok{lapply}\NormalTok{(train, }\ControlFlowTok{function}\NormalTok{(x) }\KeywordTok{as.character}\NormalTok{(}\KeywordTok{first}\NormalTok{(x))))))}
+
+\KeywordTok{datatable}\NormalTok{(summary_df)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## PhantomJS not found. You can install it with webshot::install_phantomjs(). If it is installed, please make sure the phantomjs executable can be found via the PATH variable.
+\end{verbatim}
+
+\hypertarget{htmlwidget-bf0241a3f7b9cb185471}{}
+
+Looking at the number of unique values for each feature, we can already
+tell that each row represents an unique client (\emph{ids}). We also see
+that the variable \emph{borrowed\_in\_months} is numerical but only has
+3 values, so it may be actually a categorical variable. Note also that
+there are some encrypted variables. We also have some missing values,
+marked on the \emph{count\_na\_values} column.
+
+Our dependent variable (target) is \emph{default}, which is a boolean
+value. However, we see that there are 3 levels. Inspecting, we find that
+there are empty imputs creating a ``'' level, and that this occurs to
+every factor variable except the \emph{ids} column. These will be
+treated as missing values, as it makes no sence in none of the features,
+and is dangerous to keep it this way as it could lead to the model using
+all n dummy variables instead of (n-1).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Structure of the categorical variables}
+\KeywordTok{str}\NormalTok{(}\KeywordTok{select_if}\NormalTok{(train, is.factor)) }\CommentTok{# Undesirable empty level ""}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 'data.frame':    64592 obs. of  13 variables:
+##  $ ids             : Factor w/ 64592 levels "0003da40-123b-031a-63b3-f7c9f18516ab",..: 32384 45216 42081 10012 58038 46291 34788 46446 24902 2253 ...
+##  $ default         : Factor w/ 3 levels "","False","True": 2 2 2 2 2 2 2 2 2 2 ...
+##  $ score_1         : Factor w/ 8 levels "","1Rk8w4Ucd5yR3KcqZzLdow==",..: 8 5 4 3 3 2 5 8 2 5 ...
+##  $ score_2         : Factor w/ 36 levels "","/tdlnWjXoZ3OjdtBXzdOJQ==",..: 30 28 35 31 9 27 28 11 14 17 ...
+##  $ reason          : Factor w/ 20346 levels "","mLVIVxoGY7TUDJ1FyFoSIajntNuP9+k+0GkZRAvieTPJZitTdV5z59z5/uk4C6+fZXU2S3kiwPuazYT7i37CXbRGYQtX88kfDD9crRqaZ23MJ+w"| __truncated__,..: 14192 5304 12393 16087 15027 5682 16017 11781 7912 8461 ...
+##  $ sign            : Factor w/ 13 levels "","aqua","arie",..: 13 10 8 1 8 1 13 1 1 1 ...
+##  $ gender          : Factor w/ 3 levels "","f","m": 2 2 3 3 3 2 3 3 2 2 ...
+##  $ facebook_profile: Factor w/ 3 levels "","False","True": 3 2 3 2 1 2 2 3 2 3 ...
+##  $ state           : Factor w/ 51 levels "","/+QaZYcpPt5mXLpkv6I8Bw==",..: 46 46 5 27 41 8 4 31 18 18 ...
+##  $ zip             : Factor w/ 831 levels "","/+82UC3tzFrNWWenFmhJGg==",..: 365 552 192 212 781 590 756 348 579 275 ...
+##  $ channel         : Factor w/ 2 levels "","NCqL3QBx0pscDnx3ixKwXg==": 2 2 2 2 2 2 2 2 2 2 ...
+##  $ job_name        : Factor w/ 44605 levels "","75/c/HDAyPpsM73zIdA1jDXtf2PwTDRY6jnSMMyozRMoC1kOfWpg5CMMjkzL06RbFBpFI+bOjpbL81eMKYQpn7rWti3gS2ZrYcVIAr01+xE=",..: 27190 14697 34788 8104 33441 340 1 25418 23377 36670 ...
+##  $ real_state      : Factor w/ 6 levels "","+qWF9pJpVGtTFn4vFjb/cg==",..: 3 3 4 4 4 3 4 4 4 4 ...
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{summary}\NormalTok{(train}\OperatorTok{$}\NormalTok{default) }\CommentTok{# count of each level in the target variable}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##       False  True 
+##  4626 50456  9510
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Number of empty cells in the train dataset}
+\KeywordTok{sum}\NormalTok{(train}\OperatorTok{==}\StringTok{""}\NormalTok{, }\DataTypeTok{na.rm =}\NormalTok{ T)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 49282
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Creating a functin to clean the empty values, as it needs to be applied to both train and test dataset }
+\NormalTok{cleaning_empty_levels <-}\StringTok{ }\ControlFlowTok{function}\NormalTok{(data) \{}
+\NormalTok{  data[data}\OperatorTok{==}\StringTok{""}\NormalTok{] <-}\StringTok{ }\OtherTok{NA}
+
+  \CommentTok{# Removing "" levels from factors}
+  \ControlFlowTok{for}\NormalTok{ (column }\ControlFlowTok{in} \KeywordTok{names}\NormalTok{(}\KeywordTok{select_if}\NormalTok{(data, is.factor))) \{}
+\NormalTok{    data[,column] <-}\StringTok{ }\KeywordTok{droplevels}\NormalTok{(data[,column])}
+\NormalTok{  \}}
+  
+  \KeywordTok{return}\NormalTok{(data)}
+\NormalTok{\}}
+
+\NormalTok{train <-}\StringTok{ }\KeywordTok{cleaning_empty_levels}\NormalTok{(train)}
+\NormalTok{test <-}\StringTok{ }\KeywordTok{cleaning_empty_levels}\NormalTok{(test)}
+\end{Highlighting}
+\end{Shaded}
+
+We now note that the variable \emph{channel} has only one level and thus
+can be ignored as it brings no information.
+
+\hypertarget{exploratory-data-analysis}{\subsection{Exploratory Data
+Analysis}\label{exploratory-data-analysis}}
+
+From the correlation plot of the numerical variables, we see that the
+the variables \emph{n\_accounts} and \emph{n\_issues} are highly
+correlated, with a value of 0.9992. Other than that, we don't see any
+strong correlation between other variables.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{corrplot}\NormalTok{(}\KeywordTok{cor}\NormalTok{(}\KeywordTok{select_if}\NormalTok{(train, is.numeric), }\DataTypeTok{use =} \StringTok{"complete.obs"}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{homework_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+Looking at the density of the numerical variables, we see that some are
+highly skewed. We may want to look closer as we may find some potential
+outliers.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select_if}\NormalTok{(train, is.numeric) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{gather}\NormalTok{() }\OperatorTok{%>%}\StringTok{  }
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(value)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(}\OperatorTok{~}\StringTok{ }\NormalTok{key, }\DataTypeTok{scales=}\StringTok{'free'}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_density}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Removed 80742 rows containing non-finite values (stat_density).
+\end{verbatim}
+
+\includegraphics{homework_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{select_if}\NormalTok{(train, is.numeric) }\OperatorTok{%>%}\StringTok{ }
+\StringTok{  }\KeywordTok{gather}\NormalTok{() }\OperatorTok{%>%}\StringTok{  }
+\StringTok{  }\KeywordTok{ggplot}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{y=}\NormalTok{value)) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(}\OperatorTok{~}\StringTok{ }\NormalTok{key, }\DataTypeTok{scales=}\StringTok{'free'}\NormalTok{) }\OperatorTok{+}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_boxplot}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: Removed 80742 rows containing non-finite values (stat_boxplot).
+\end{verbatim}
+
+\includegraphics{homework_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+\hypertarget{modeling}{\subsection{Modeling}\label{modeling}}
+
+As the No Free Lunch theorem states, there is no such thing as ``the
+best model''. Let's apply some known ML algorithms and evaluate them to
+find the optimal one for our problem.
+
+The first step is to split the train dataset into the train the model
+will receive as input and a holdout validation dataset to evaluate the
+quality of the model on unseen data.
+
+K-fold Cross Validation
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{control <-}\StringTok{ }\KeywordTok{trainControl}\NormalTok{(}\DataTypeTok{method=}\StringTok{"cv"}\NormalTok{, }\DataTypeTok{number=}\DecValTok{10}\NormalTok{) }\CommentTok{# 10-fold cv}
+\end{Highlighting}
+\end{Shaded}
+
+We'll start by building a Random Forest Classifier and see the feature
+importance.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# Logistic Regression}
+\CommentTok{# Decision Tree}
+\CommentTok{# Random Forest}
+\CommentTok{# SVM}
+\CommentTok{# Gradient Boosting}
+\CommentTok{# XGBoost}
+
+\CommentTok{# Metrics: Accuracy, AUC, Recall, Precision, F1 Score}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{formula <-}\StringTok{ }\NormalTok{default }\OperatorTok{~}\StringTok{ }\NormalTok{score_}\DecValTok{1} \OperatorTok{+}
+\StringTok{  }\NormalTok{score_}\DecValTok{2} \OperatorTok{+}\StringTok{ }\NormalTok{score_}\DecValTok{3} \OperatorTok{+}\StringTok{ }\NormalTok{score_}\DecValTok{4}
+
+\KeywordTok{summary}\NormalTok{(}\KeywordTok{glm}\NormalTok{(formula, train, }\DataTypeTok{family =} \KeywordTok{binomial}\NormalTok{()))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## glm(formula = formula, family = binomial(), data = train)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.2419  -0.6436  -0.5053  -0.3589   2.7221  
+## 
+## Coefficients: (6 not defined because of singularities)
+##                                   Estimate Std. Error z value Pr(>|z|)    
+## (Intercept)                     -2.3297381  0.3670428  -6.347 2.19e-10 ***
+## score_14DLlLW62jReXaqbPaHp1vQ== -1.2875134  0.1286297 -10.009  < 2e-16 ***
+## score_18k8UDR4Yx0qasAjkGrUZLw==  0.5569413  0.0745533   7.470 8.00e-14 ***
+## score_1DGCQep2AE5QRkNCshIAlFQ== -0.1199493  0.0636321  -1.885 0.059424 .  
+## score_1e4NYDor1NOw6XKGE60AWFw==  0.7455207  0.0968204   7.700 1.36e-14 ***
+## score_1fyrlulOiZ+5hoFqLa6UbDQ==  1.5729875  0.1785762   8.808  < 2e-16 ***
+## score_1smzX0nxh5QlePvtVf6EAeg==  1.2869687  0.1216694  10.578  < 2e-16 ***
+## score_2+2hzpeP1RWr8PEvL1WTUdw== -0.4518501  0.2821114  -1.602 0.109228    
+## score_2+CxEO4w7jv3QPI/BQbyqAA==  0.1177416  0.0826981   1.424 0.154518    
+## score_25/uMrqKj3OL/Xk5OrGx9fg==  0.0774523  0.5158625   0.150 0.880653    
+## score_255UK234RR1d7HIWJjmq9tw== -0.3046817  0.3115745  -0.978 0.328135    
+## score_26J1ZMTzN5GKHXnhM4J1JbA==  0.1430732  0.1961223   0.730 0.465690    
+## score_27h+tk4z7O9brtBSe1rNjxA==  0.0801948  0.0658768   1.217 0.223473    
+## score_27h8PTkrlTWUPP3yuyP4rUg==  0.1353655  0.1595204   0.849 0.396116    
+## score_2A+QuW1n/ABeiVVe/9CRZ9Q==  0.3010752  0.1242688   2.423 0.015402 *  
+## score_2bopP0NxW3+r8tn9xIHTaOw== -0.0076363  0.1471401  -0.052 0.958610    
+## score_2cdpgyOyZS04uXerMNu7uCw==  0.2578317  0.1189318   2.168 0.030167 *  
+## score_2d/7Hedyz7ovK9Pn1CYN4+A== -0.1965621  0.0791990  -2.482 0.013069 *  
+## score_2dCm9hFKfdRm7ej3jW+gyxw==  0.4409908  0.0679464   6.490 8.57e-11 ***
+## score_2dWJRASUFMejk3AHZ1p1Gkg== -0.6935633  0.3990588  -1.738 0.082211 .  
+## score_2emS9xH8CLoRNie2uSmaDAQ== -0.4384114  0.1955496  -2.242 0.024965 *  
+## score_2Fv28Bz0YRTVAT5kl1bAV6g== -0.4123555  0.0738567  -5.583 2.36e-08 ***
+## score_2IOVu8au3ISbo6+zmfnYwMg==  0.2668944  0.0668229   3.994 6.50e-05 ***
+## score_2ky19q4V1ZqgL3jnHX0wKDw==  0.1548549  0.1112679   1.392 0.164004    
+## score_2LCak332j+TYFqHC3NDwiqg==  0.4614994  0.0663642   6.954 3.55e-12 ***
+## score_2mX2VRRG38RPiHX+MfjefRw==  0.1668105  0.0861274   1.937 0.052771 .  
+## score_2NLvAOzzmJba/0zolQnWF5Q==  0.0971189  0.1139936   0.852 0.394232    
+## score_2O4i7FxcROACMVTCgI0WXuA==  0.0256848  0.1772609   0.145 0.884791    
+## score_2OlDYtdljgSSYM/M1L2CRaQ== -0.0540172  0.0798880  -0.676 0.498938    
+## score_2osCzpM4hJrxugqWWuZmMWw== -0.1873521  0.0618276  -3.030 0.002444 ** 
+## score_2pAzpxkhjPsjWldgSX21+zg==  0.5184434  0.1388663   3.733 0.000189 ***
+## score_2rJZgTmANW3PjOCQLCcp4iQ==  0.0592229  0.0671533   0.882 0.377828    
+## score_2RO7MTL+j4PH2gNzbhNTq/A== -0.3392979  0.0672279  -5.047 4.49e-07 ***
+## score_2SaamrHMo23l/3TwXOWgVzw==         NA         NA      NA       NA    
+## score_2tHpS8e9F8d9zg3iOQM9tsA== -0.0326490  0.1570249  -0.208 0.835290    
+## score_2tQUTfUyeuGkhRotd+6WjVg==  0.3831694  0.1426902   2.685 0.007246 ** 
+## score_2vJyc9xom9v7hwFMPTIpmKw==         NA         NA      NA       NA    
+## score_2w1miZqhB5+RSamEQJa0rqg==         NA         NA      NA       NA    
+## score_2wjdj2vxjWoDsEIk0l09ynw==         NA         NA      NA       NA    
+## score_2wkeCdGeu5sEv4/fjwR0aDg==         NA         NA      NA       NA    
+## score_2YLGMUI9hObSh6wD/xfanGg==         NA         NA      NA       NA    
+## score_3                          0.0007573  0.0001040   7.281 3.32e-13 ***
+## score_4                          0.0032001  0.0036225   0.883 0.377029    
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 52449  on 59965  degrees of freedom
+## Residual deviance: 49407  on 59929  degrees of freedom
+##   (4626 observations deleted due to missingness)
+## AIC: 49481
+## 
+## Number of Fisher Scoring iterations: 5
+\end{verbatim}
+
+\subsection{Conclusions}\label{conclusions}
+
+
+\end{document}

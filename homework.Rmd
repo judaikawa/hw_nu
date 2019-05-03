@@ -1,0 +1,159 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This markdown contains the following sections:
+
+1. [Puzzle Overview](#puzzel-overview)
+2. [Libraries](#libraries)
+3. [Reading the Datasets](#reading-the-datasets)
+4. [Data Cleaning](#data-cleaning)
+5. [Exploratory Data Analysis](#exploratory-data-analysis)
+6. [Modeling](#modeling)
+7. [Conclusion](#conclusion)
+
+## Puzzle Overview
+As a credit company, it is important to know beforehand who is able to pay their loans and who is not. The goal of this puzzle is to build a statistical/machine learning model to figure out which clients are able to honor their debit.
+
+The goal is to predict the probability of default, which is identified by the default variable in the training set. Thus, we are dealing with a **supervised** problem for a **binary classification** but rather than classes, the output should be the **probability.** The models that it is tested on this notebook are the Logistic Regression, Naive Bayes and Random Forest.
+
+## Libraries
+
+The following libraries are required to run all the code presented in this notebook.
+```{r warning=FALSE, message=FALSE, results='hide'}
+library(knitr) # Markdown, LaTeX, HTML
+library(dplyr) # data manipulation
+library(ggplot2) # plots
+library(caret) # classification and regression training
+library(kableExtra)
+library(DT)
+library(corrplot) # for correlation plot
+library(tidyr) 
+```
+
+## Reading the Datasets
+
+```{r}
+# Reading the csv format data
+train <- read.csv('puzzle_train_dataset.csv')
+test <- read.csv('puzzle_test_dataset.csv')
+
+# 
+head(train,3) %>% 
+  kable(caption='Train Dataset') %>% 
+  kable_styling() %>% 
+  scroll_box(width = '100%') # adding a scroll bar as it has many columns
+```
+
+
+## Data Cleaning
+
+We have `r nrow(train)` rows in the train dataset with `r ncol(train)` columns. There are some numerical and some categorical variables. Let's take a look at what these variables looks like.
+
+```{r}
+# Creating a summary dataframe
+summary_df <- data.frame('var' = names(train), 
+                         'type' = as.character(unlist(lapply(train, class))), 
+                         'unique' = as.character(unlist(lapply(train, function(x) length(unique(x))))), 
+                         'count_na_values' = as.character(unlist(lapply(train, function(x) sum(is.na(x))))),
+                         'first_obs' = as.character(unlist(lapply(train, function(x) as.character(first(x))))))
+
+datatable(summary_df)
+
+```
+
+Looking at the number of unique values for each feature, we can already tell that each row represents an unique client (*ids*). We also see that the variable *borrowed_in_months* is numerical but only has 3 values, so it may be actually a categorical variable. Note also that there are some encrypted variables. We also have some missing values, marked on the *count_na_values* column.
+
+Our dependent variable (target) is *default*, which is a boolean value. However, we see that there are 3 levels. Inspecting, we find that there are empty imputs creating a "" level, and that this occurs to every factor variable except the *ids* column. These will be treated as missing values, as it makes no sence in none of the features, and is dangerous to keep it this way as it could lead to the model using all n dummy variables instead of (n-1).
+```{r}
+# Structure of the categorical variables
+str(select_if(train, is.factor)) # Undesirable empty level ""
+summary(train$default) # count of each level in the target variable
+
+# Number of empty cells in the train dataset
+sum(train=="", na.rm = T)
+
+# Creating a functin to clean the empty values, as it needs to be applied to both train and test dataset 
+cleaning_empty_levels <- function(data) {
+  data[data==""] <- NA
+
+  # Removing "" levels from factors
+  for (column in names(select_if(data, is.factor))) {
+    data[,column] <- droplevels(data[,column])
+  }
+  
+  return(data)
+}
+
+train <- cleaning_empty_levels(train)
+test <- cleaning_empty_levels(test)
+```
+
+We now note that the variable *channel* has only one level and thus can be ignored as it brings no information.
+
+## Exploratory Data Analysis
+
+From the correlation plot of the numerical variables, we see that the the variables *n_accounts* and *n_issues* are highly correlated, with a value of `r round(cor(train$n_accounts, train$n_issues, use="complete.obs"),4)`. Other than that, we don't see any strong correlation between other variables.
+```{r}
+corrplot(cor(select_if(train, is.numeric), use = "complete.obs"))
+```
+
+Looking at the density of the numerical variables, we see that some are highly skewed. We may want to look closer as we may find some potential outliers.
+```{r}
+select_if(train, is.numeric) %>% 
+  gather() %>%  
+  ggplot(aes(value)) + 
+  facet_wrap(~ key, scales='free') + 
+  geom_density()
+```
+
+```{r}
+select_if(train, is.numeric) %>% 
+  gather() %>%  
+  ggplot(aes(y=value)) + 
+  facet_wrap(~ key, scales='free') + 
+  geom_boxplot()
+```
+
+
+## Modeling
+
+As the No Free Lunch theorem states, there is no such thing as "the best model". Let's apply some known ML algorithms and evaluate them to find the optimal one for our problem.
+
+The first step is to split the train dataset into the train the model will receive as input and a holdout validation dataset to evaluate the quality of the model on unseen data.
+
+K-fold Cross Validation
+```{r}
+control <- trainControl(method="cv", number=10) # 10-fold cv
+
+```
+
+
+We'll start by building a Random Forest Classifier and see the feature importance.
+```{r}
+# Logistic Regression
+# Decision Tree
+# Random Forest
+# SVM
+# Gradient Boosting
+# XGBoost
+
+# Metrics: Accuracy, AUC, Recall, Precision, F1 Score
+```
+
+```{r}
+
+groupvars <- colnames(select_if(train, function(x) (nlevels(x) > 1 & nlevels(x) < 36) | is.numeric(x)))
+groupvars <- groupvars[groupvars != 'default']
+
+formula <- paste('default', paste(groupvars, collapse=" + "), sep=" ~ ")
+
+summary(glm(formula, train, family = binomial()))
+```
+
+## Conclusions
