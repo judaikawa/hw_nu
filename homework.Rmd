@@ -147,9 +147,9 @@ We'll start by building a Random Forest Classifier and see the feature importanc
 ```
 
 ```{r}
-
 groupvars <- colnames(select_if(train, function(x) (nlevels(x) > 1 & nlevels(x) < 36) | is.numeric(x)))
-groupvars <- groupvars[groupvars != 'default']
+groupvars <- groupvars[groupvars != 'default'] # removing the target
+groupvars <- groupvars[groupvars != 'n_issues'] # removing n_issues as it's highly correlated to n_accounts and has more missing values
 
 formula <- paste('default', paste(groupvars, collapse=" + "), sep=" ~ ")
 
