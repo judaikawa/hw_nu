@@ -69,7 +69,7 @@ summary_df <- data.frame('var' = names(train),
 summary_df %>% 
   kable(caption='Variables Summary') %>% 
   kable_styling() %>% 
-  scroll_box(width = '100%', height = '25%')
+  scroll_box(width = '100%', height = '50px')
 
 ```
 
@@ -112,11 +112,14 @@ train <- train[-which(is.na(train$default)),]
 
 ## Exploratory Data Analysis
 
+### Correlation
+
 From the correlation plot of the numerical variables, we see that the the variables *n_accounts* and *n_issues* are highly correlated, with a value of `r round(cor(train$n_accounts, train$n_issues, use="complete.obs"),4)`. Other than that, we don't see any strong correlation between other variables.
 ```{r}
 corrplot(cor(select_if(train, is.numeric), use = "complete.obs"))
 ```
 
+### Missing Values
 ```{r}
 round(sapply(train, function(x) sum(is.na(x)))/nrow(train), 3)
 ```
@@ -126,6 +129,7 @@ The column *ok_since* will be dropped as it contains more than 50% of missing va
 train <- train[,-which(names(train) %in% c("ok_since","channel", "sign", "n_issues"))]
 ```
 
+### Distributions
 
 Looking at the density of the numerical variables, we see that some are highly skewed. We may want to look closer as we may find some potential outliers.
 ```{r}
@@ -268,11 +272,12 @@ logloss_glm <- logLoss(pred_glm[-which(is.na(pred_glm))],
 
 Another Logistic Regression was tested but only with binary variables. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality. Unfortunatly, it took way too many time to process the tree for categories with more than 30 levels, so that was left out. This served more of a test, and it didn't give any improvement to the last model.
 ```{r}
-
 binary_transf <- function(data) { 
   binary_data <- data.frame('default'=data$default)
 
   for (var in c('score_1','score_3','score_4','score_5','score_6','risk_rate','amount_borrowed','borrowed_in_months','credit_limit','income','gender','facebook_profile','real_state','n_bankruptcies','n_defaulted_loans','n_accounts')) {
+    
+    # Decision Trees to find splitting rules
     tree <- partykit::ctree(default~eval(parse(text=var)), sample_data)
     rules <- list(partykit:::.list.rules.party(tree))
     if (length(unlist(rules))>1) {
@@ -308,7 +313,6 @@ logloss_glm_bin <- logLoss(pred_glm_bin[-which(is.na(pred_glm_bin))],
 
 Finally, a Random Forest was built to see if it perfoms better than the Logistic Regression.
 ```{r}
-
 formula <- default ~ score_1 + score_2 + score_3 + score_4 + score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income + gender + facebook_profile + real_state + n_bankruptcies + n_defaulted_loans + n_accounts
 
 rf <- randomForest(formula, na.omit(sample_data))
@@ -321,7 +325,6 @@ r_rf <- 1 - sum((ifelse(validation$default==0,0,1)-pred_rf)^2, na.rm = T)/sum((i
 auc_rf <- auc(pred_rf, validation$default)
 logloss_rf <- logLoss(pred_rf[-which(is.na(pred_rf))],
                        ifelse(validation$default==0,0,1)[-which(is.na(pred_rf))])
-
 
 varImpPlot(rf)
 ```
