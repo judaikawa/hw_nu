@@ -36,6 +36,7 @@ library(corrplot) # for correlation plot
 library(tidyr) 
 library(randomForest)
 library(ROCR)
+library(partykit)
 ```
 
 ## Reading the Datasets
@@ -69,7 +70,12 @@ datatable(summary_df)
 
 ```
 
-Looking at the number of unique values for each feature, we can already tell that each row represents an unique client (*ids*). We also see that the variable *borrowed_in_months* is numerical but only has 3 values, so it may be actually a categorical variable. Note also that there are some encrypted variables. We also have some missing values, marked on the *count_na_values* column.
+Looking at the number of unique values for each feature, we can already tell that each row represents an unique client (*ids*). Note also that there are some encrypted variables. We also have some missing values, marked on the *count_na_values* column. We also see that the variable *borrowed_in_months* is numerical but only has 3 values, so it may be better to use it as a categorical variable.
+```{r}
+train$borrowed_in_months <- as.factor(train$borrowed_in_months)
+test$borrowed_in_months <- as.factor(test$borrowed_in_months)
+```
+
 
 Our dependent variable (target) is *default*, which is a boolean value. However, we see that there are 3 levels. Inspecting, we find that there are empty imputs creating a "" level, and that this occurs to every factor variable except the *ids* column. These will be treated as missing values, as it makes no sence in none of the features, and is dangerous to keep it this way as it could lead to the model using all n dummy variables instead of (n-1).
 ```{r}
@@ -135,6 +141,14 @@ select_if(train, is.numeric) %>%
   geom_boxplot()
 ```
 
+*n_bankruptcies* and *n_defaulted_loans* are discrete and have very low representation of higher values. Let's change it to binary variables instead.
+```{r}
+train$n_bankruptcies <- as.factor(ifelse(train$n_bankruptcies==0,0,1))
+train$n_defaulted_loans <- as.factor(ifelse(train$n_defaulted_loans==0,0,1))
+test$n_bankruptcies <- as.factor(ifelse(test$n_bankruptcies==0,0,1))
+test$n_defaulted_loans <- as.factor(ifelse(test$n_bankruptcies==0,0,1))
+```
+
 
 ## Modeling
 
@@ -145,13 +159,19 @@ We also need to be aware of how the dataset is **imbalanced** with respect to th
 summary(train$default)
 ```
 
-As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve) and the Log Loss Score.
+As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve), R squared and the Log Loss Score.
 
-Altough the final output is a probability, we can also look at how it performs as a binary classifier, with the metrics: Recall, Precision, F1-Score and Confusion Matrix. We do however needm to define a threshold on this case.
+We could additionally look at how it performns as a binary classifier, with metrics like Recall, Precision, F1-Score and Confusion Matrix. We do however would need to define a threshold on this case.
 
 ### Handling with Imbalanced Dataset
 As stated, we should be cautious with the fact that the 2 classes on the target variable aren't equally represented on the dataset. A simple way to overcome this is to use resampling methods like Undersampling and Oversampling. Because we have not many data, we'll go with the latter. 
 Another good way to handle this is by defining a cost function. We first need to wonder if classifying a customer as default when in reality he is not is better than the other way around. But because this needs more understanding of the business, I'll leave it as a side note.
+
+Let's change the target to 0 and 1 to make it easier for further evaluations. 
+```{r}
+train$default <- ifelse(train$default=='True',1,0)
+train$default <- as.factor(train$default)
+```
 
 
 ### Cross Validation
@@ -170,8 +190,8 @@ train <- train[train_idx,]
 Now, we need to do an oversample of out training dataset so that the model won't be biased by the majority  class. A side note to oversampling however is that it can lead to overfitting, as it adds replicated observations in the original data set.
 ```{r}
 set.seed(456)
-dados0 <- subset(train, train$default=='False')
-dados1 <- subset(train, train$default=='True')
+dados0 <- subset(train, train$default==0)
+dados1 <- subset(train, train$default==1)
 amostra0 <- sample(nrow(dados0), nrow(dados0))
 amostra1 <- sample(nrow(dados1), nrow(dados0), replace = TRUE)
 
@@ -183,46 +203,83 @@ rm(amostra0, amostra1)
 ```
 
 
-As the desired output is the probability, we'll start by modeling a Logistic Regression.
+As the desired output is the probability, we'll start by modeling a Logistic Regression with a Stepwise Feature Selection.
+
+The features *job_name*, *reason*, *zip* and *state* have too many levels, and a more deep analysis would be needed to see if it could be broken down into smaller levels (perhaps in a clustering analysis) and if it would be worth it. As for in this project, it will be leaved out.
 ```{r}
-groupvars <- colnames(select_if(train, function(x) (nlevels(x) > 1 & nlevels(x) < 36) | is.numeric(x)))
-groupvars <- groupvars[groupvars != 'default'] # removing the target
-groupvars <- groupvars[groupvars != 'n_issues'] # removing n_issues as it's highly correlated to n_accounts and has more missing values
+full <- default ~ score_1 + score_2 + score_3 + score_4 + score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income + gender + facebook_profile + real_state + n_bankruptcies + n_defaulted_loans + n_accounts
 
-formula <- paste('default', paste(groupvars, collapse=" + "), sep=" ~ ")
+glm <- glm(full, sample_data, family=binomial())
 
-glm <- glm(formula, sample_data, family = binomial()) 
+glm <- step(glm, trace=FALSE)
+
+formula <- glm$formula
+
+print(paste("R squared: ",round( 1 - ( summary(glm)$deviance / summary(glm)$null.deviance ), 2 ))) # R squared
 ```
 
-
-
-We'll start by building a Random Forest Classifier and see the feature importance.
+### ROC and AUC
 ```{r}
-formula <- default ~ score_1 + score_2 + score_3 + score_4 +
-  score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income +
-  gender + facebook_profile + state + real_state + n_bankruptcies + 
-  n_defaulted_loans + n_accounts
+pred <- predict(glm, validation, type='response')
+
+roc_auc <- function(pred) {
+  metrics <- ROCR::prediction(pred, validation$default)
+  ## ROC
+  perf <- performance(metrics, measure="tpr",
+                    x.measure="fpr")
+  auc <- performance(metrics, measure="auc")
   
+  return(plot(perf, main = paste0("AUC: ", auc@y.values)) + abline(a=0,b=1))
+}
+
+roc_auc(pred)
+
+```
+
+### Log Loss Score
+```{r}
+logLoss = function(pred, actual){
+  -1*mean(log(pred[model.matrix(~ actual + 0) - pred > 0]))
+}
+
+logLoss(pred[-which(is.na(pred))], ifelse(validation$default==0,0,1)[-which(is.na(pred))])
+```
+
+The Logistic Regression is known for working better with categorical variables, so let's build try it out. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality.
+```{r}
+binary_data <- data.frame(sample_data$ids)
+
+for (var in c('score_3','score_4')) {
+  tree <- partykit::ctree(default~eval(parse(text=var)), sample_data)
+  rules <- list(partykit:::.list.rules.party(tree))
+  if (length(unlist(rules))>1) {
+    for (i in 1:length(unlist(rules))) {
+      newVar <- paste0(var,'_',i)
+      binary <- sample_data %>% 
+        mutate(newVar=ifelse(eval(parse(text = unlist(rules)[1])) ,1,0)) %>% select(newVar)
+      names(binary) <- newVar
+      binary_data <- cbind(binary_data, binary)
+    }
+  }
+}
+```
+
+Random Forest Classifier and feature importance.
+```{r}
 rf <- randomForest(formula, na.omit(sample_data))
 
 varImpPlot(rf)
 ```
 
-```{r}
-# Logistic Regression
-# Decision Tree
-# Random Forest
-# SVM
-# Gradient Boosting
-# XGBoost
 
-# Metrics: Accuracy, AUC, Recall, Precision, F1 Score
+```{r}
+pred <- predict(rf, validation, type='prob')
+pred <- pred[,2]
+roc_auc(pred)
 ```
 
-K-fold Cross Validation
 ```{r}
-control <- trainControl(method="cv", number=10) # 10-fold cv
-
+logLoss(pred[-which(is.na(pred))], ifelse(validation$default==0,0,1)[-which(is.na(pred))])
 ```
 
 ## Conclusions
