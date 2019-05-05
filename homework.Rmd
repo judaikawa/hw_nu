@@ -15,12 +15,12 @@ This markdown contains the following sections:
 4. [Data Cleaning](#data-cleaning)
 5. [Exploratory Data Analysis](#exploratory-data-analysis)
 6. [Modeling](#modeling)
-7. [Conclusion](#conclusion)
+7. [Conclusions](#conclusions)
 
 ## Puzzle Overview
 As a credit company, it is important to know beforehand who is able to pay their loans and who is not. The goal of this puzzle is to build a statistical/machine learning model to figure out which clients are able to honor their debit.
 
-The goal is to predict the probability of default, which is identified by the default variable in the training set. Thus, we are dealing with a **supervised** problem for a **binary classification** but rather than classes, the output should be the **probability.** The models that it is tested on this notebook are the Logistic Regression, Naive Bayes and Random Forest.
+The goal is to predict the probability of default, which is identified by the default variable in the training set. Thus, we are dealing with a **supervised** problem for a **binary classification** but rather than classes, the output should be the **probability.** The models that it is tested on this notebook are the Logistic Regression and Random Forest.
 
 ## Libraries
 
@@ -47,7 +47,7 @@ train <- read.csv('puzzle_train_dataset.csv')
 test <- read.csv('puzzle_test_dataset.csv')
 
 # 
-head(train,3) %>% 
+head(train,2) %>% 
   kable(caption='Train Dataset') %>% 
   kable_styling() %>% 
   scroll_box(width = '100%') # adding a scroll bar as it has many columns
@@ -66,7 +66,10 @@ summary_df <- data.frame('var' = names(train),
                          'count_na_values' = as.character(lapply(train, function(x) sum(is.na(x)))),
                          'first_obs' = as.character(lapply(train, function(x) as.character(first(x)))))
 
-datatable(summary_df)
+summary_df %>% 
+  kable(caption='Variables Summary') %>% 
+  kable_styling() %>% 
+  scroll_box(width = '100%', height = '25%')
 
 ```
 
@@ -152,16 +155,50 @@ test$n_defaulted_loans <- as.factor(ifelse(test$n_bankruptcies==0,0,1))
 
 ## Modeling
 
-As the No Free Lunch theorem states, there is no such thing as "the best model". Let's apply some known ML algorithms and evaluate them to find the optimal one for our problem.
+As the No Free Lunch theorem states, there is no such thing as "the best model". So we will build a Logistic Regression and a Random Forest and evaluate them to find the optimal one for our problem.
 
 We also need to be aware of how the dataset is **imbalanced** with respect to the target variable, as only `r round(sum(train$default=='True', na.rm = T)/nrow(train), 2)*100`% of the target is labeled *True.* This needs to be taken into account as looking only at metrics like Accuracy may not be a good indicator, alternatively, we should look at a good tradeoff between Sensitivity and Specificity.
 ```{r}
 summary(train$default)
 ```
 
-As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve), R squared and the Log Loss Score.
+### Metrics
 
-We could additionally look at how it performns as a binary classifier, with metrics like Recall, Precision, F1-Score and Confusion Matrix. We do however would need to define a threshold on this case.
+As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve), R squared and the Log Loss Score.
+```{r}
+# R squared
+r_squared <- function(model) {
+  return(round( 1 - ( summary(model)$deviance / summary(model)$null.deviance ), 3 ))
+}
+
+# Log Loss
+logLoss <- function(pred, actual){
+  ll <- -1*mean(log(pred[model.matrix(~ actual + 0) - pred > 0]))
+  return(round(ll,3))
+}
+
+# ROC and AUC
+roc_auc <- function(pred, actual) {
+  metrics <- ROCR::prediction(pred, actual)
+  
+  perf <- performance(metrics, measure="tpr",
+                    x.measure="fpr")
+  auc <- performance(metrics, measure="auc")
+  
+  return(plot(perf, main = paste0("AUC: ", auc@y.values)) + abline(a=0,b=1))
+}
+
+# AUC
+auc <- function(pred, actual) {
+  metrics <- ROCR::prediction(pred, actual)
+  auc <- performance(metrics, measure="auc")
+  return(round(unlist(auc@y.values),3))
+}
+
+```
+
+
+We could additionally look at how it performns as a binary classifier, with metrics like Recall, Precision, F1-Score and Confusion Matrix. We would however need to define a threshold on this case.
 
 ### Handling with Imbalanced Dataset
 As stated, we should be cautious with the fact that the 2 classes on the target variable aren't equally represented on the dataset. A simple way to overcome this is to use resampling methods like Undersampling and Oversampling. Because we have not many data, we'll go with the latter. 
@@ -202,12 +239,15 @@ sample_data <- rbind(amostra0, amostra1)
 rm(amostra0, amostra1)
 ```
 
+### Logistic Regression
 
 As the desired output is the probability, we'll start by modeling a Logistic Regression with a Stepwise Feature Selection.
 
 The features *job_name*, *reason*, *zip* and *state* have too many levels, and a more deep analysis would be needed to see if it could be broken down into smaller levels (perhaps in a clustering analysis) and if it would be worth it. As for in this project, it will be leaved out.
+
+A transformation on the variables *credit_limit* and *income* were made to try to make it fit better, in an attempt to make their skewness lower.
 ```{r}
-full <- default ~ score_1 + score_2 + score_3 + score_4 + score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income + gender + facebook_profile + real_state + n_bankruptcies + n_defaulted_loans + n_accounts
+full <- default ~ score_1 + score_2 + score_3 + score_4 + score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + sqrt(credit_limit) + log(income) + gender + facebook_profile + real_state + n_bankruptcies + n_defaulted_loans + n_accounts
 
 glm <- glm(full, sample_data, family=binomial())
 
@@ -215,71 +255,109 @@ glm <- step(glm, trace=FALSE)
 
 formula <- glm$formula
 
-print(paste("R squared: ",round( 1 - ( summary(glm)$deviance / summary(glm)$null.deviance ), 2 ))) # R squared
+pred_glm <- predict(glm, validation, type='response')
+
+# Metrics
+r_glm <- r_squared(glm)
+auc_glm <- auc(pred_glm, validation$default)
+logloss_glm <- logLoss(pred_glm[-which(is.na(pred_glm))],
+                       ifelse(validation$default==0,0,1)[-which(is.na(pred_glm))])
 ```
 
-### ROC and AUC
+### Logistic Regression with Binary Predictors
+
+Another Logistic Regression was tested but only with binary variables. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality. Unfortunatly, it took way too many time to process the tree for categories with more than 30 levels, so that was left out. This served more of a test, and it didn't give any improvement to the last model.
 ```{r}
-pred <- predict(glm, validation, type='response')
 
-roc_auc <- function(pred) {
-  metrics <- ROCR::prediction(pred, validation$default)
-  ## ROC
-  perf <- performance(metrics, measure="tpr",
-                    x.measure="fpr")
-  auc <- performance(metrics, measure="auc")
-  
-  return(plot(perf, main = paste0("AUC: ", auc@y.values)) + abline(a=0,b=1))
-}
+binary_transf <- function(data) { 
+  binary_data <- data.frame('default'=data$default)
 
-roc_auc(pred)
-
-```
-
-### Log Loss Score
-```{r}
-logLoss = function(pred, actual){
-  -1*mean(log(pred[model.matrix(~ actual + 0) - pred > 0]))
-}
-
-logLoss(pred[-which(is.na(pred))], ifelse(validation$default==0,0,1)[-which(is.na(pred))])
-```
-
-The Logistic Regression is known for working better with categorical variables, so let's build try it out. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality.
-```{r}
-binary_data <- data.frame(sample_data$ids)
-
-for (var in c('score_3','score_4')) {
-  tree <- partykit::ctree(default~eval(parse(text=var)), sample_data)
-  rules <- list(partykit:::.list.rules.party(tree))
-  if (length(unlist(rules))>1) {
-    for (i in 1:length(unlist(rules))) {
-      newVar <- paste0(var,'_',i)
-      binary <- sample_data %>% 
-        mutate(newVar=ifelse(eval(parse(text = unlist(rules)[1])) ,1,0)) %>% select(newVar)
-      names(binary) <- newVar
-      binary_data <- cbind(binary_data, binary)
+  for (var in c('score_1','score_3','score_4','score_5','score_6','risk_rate','amount_borrowed','borrowed_in_months','credit_limit','income','gender','facebook_profile','real_state','n_bankruptcies','n_defaulted_loans','n_accounts')) {
+    tree <- partykit::ctree(default~eval(parse(text=var)), sample_data)
+    rules <- list(partykit:::.list.rules.party(tree))
+    if (length(unlist(rules))>1) {
+      for (i in 1:length(unlist(rules))) {
+        newVar <- paste0(var,'_',i)
+        binary <- data %>% 
+          mutate(newVar=ifelse(eval(parse(text = unlist(rules)[1])) ,1,0)) %>% select(newVar)
+        names(binary) <- newVar
+        binary_data <- cbind(binary_data, binary)
+      }
     }
   }
+  
+  return(binary_data)
 }
+
+binary_train <- binary_transf(sample_data)
+binary_validation <- binary_transf(validation)
+
+
+glm_bin <- glm(default~., binary_train, family=binomial())
+
+pred_glm_bin <- predict(glm_bin, binary_validation, type='response')
+
+# Metrics
+r_glm_bin <- r_squared(glm_bin)
+auc_glm_bin <- auc(pred_glm_bin, binary_validation$default)
+logloss_glm_bin <- logLoss(pred_glm_bin[-which(is.na(pred_glm_bin))],
+                       ifelse(binary_validation$default==0,0,1)[-which(is.na(pred_glm_bin))])
 ```
 
-Random Forest Classifier and feature importance.
+### Random Forest
+
+Finally, a Random Forest was built to see if it perfoms better than the Logistic Regression.
 ```{r}
+
+formula <- default ~ score_1 + score_2 + score_3 + score_4 + score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income + gender + facebook_profile + real_state + n_bankruptcies + n_defaulted_loans + n_accounts
+
 rf <- randomForest(formula, na.omit(sample_data))
+
+pred_rf <- predict(rf, validation, type='prob')
+pred_rf <- pred_rf[,2]
+
+# Metrics
+r_rf <- 1 - sum((ifelse(validation$default==0,0,1)-pred_rf)^2, na.rm = T)/sum((ifelse(validation$default==0,0,1)-mean(ifelse(validation$default==0,0,1)))^2, na.rm = T)
+auc_rf <- auc(pred_rf, validation$default)
+logloss_rf <- logLoss(pred_rf[-which(is.na(pred_rf))],
+                       ifelse(validation$default==0,0,1)[-which(is.na(pred_rf))])
+
 
 varImpPlot(rf)
 ```
 
+From the plot of the importance of the variables above, we see that the variables that impacts the most in the target variable are: *score_2*, *income* and *amount_borrowed*.
 
-```{r}
-pred <- predict(rf, validation, type='prob')
-pred <- pred[,2]
-roc_auc(pred)
-```
-
-```{r}
-logLoss(pred[-which(is.na(pred))], ifelse(validation$default==0,0,1)[-which(is.na(pred))])
-```
 
 ## Conclusions
+
+Below is the table with all the metrics of the 3 models built. 
+```{r}
+df <- data.frame('model' = c('Logistic Reg.', 'Logistic Reg. Binary Predictors', 'Random Forest'), 
+           'R squared' = c(r_glm, r_glm_bin, r_rf), 
+           'AUC' = c(auc_glm, auc_glm_bin, auc_rf), 
+           'Log Loss' = c(logloss_glm, logloss_glm_bin, logloss_rf))
+
+df %>% 
+  kable(caption='Metrics') %>% 
+  kable_styling()
+```
+
+The metrics R squared and AUC are better when higher (best value equals to 1) and the Log Loss Score is better when lower (best value equals to 0). So we choose the Logistic Regression. 
+```{r}
+# ROC plot of the chosen model
+roc_auc(pred_glm, validation$default)
+```
+
+
+## Creating the csv file
+```{r}
+final_predictions <- data.frame('ids' = test$ids)
+final_predictions$predictions <- predict(glm,test)
+
+write.csv(final_predictions, 'predictions.csv')
+```
+
+A final note is that the model built uses predictors that is not available for all clients in the test dataset, and for these cases it is labeled NA. In this case, a second model would be needed or collecting more data/different features.
+
+
