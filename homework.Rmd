@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Homework Nubank 2019"
 output: html_document
 ---
 
@@ -34,6 +34,8 @@ library(kableExtra)
 library(DT)
 library(corrplot) # for correlation plot
 library(tidyr) 
+library(randomForest)
+library(ROCR)
 ```
 
 ## Reading the Datasets
@@ -58,10 +60,10 @@ We have `r nrow(train)` rows in the train dataset with `r ncol(train)` columns. 
 ```{r}
 # Creating a summary dataframe
 summary_df <- data.frame('var' = names(train), 
-                         'type' = as.character(unlist(lapply(train, class))), 
-                         'unique' = as.character(unlist(lapply(train, function(x) length(unique(x))))), 
-                         'count_na_values' = as.character(unlist(lapply(train, function(x) sum(is.na(x))))),
-                         'first_obs' = as.character(unlist(lapply(train, function(x) as.character(first(x))))))
+                         'type' = as.character(lapply(train, class)), 
+                         'unique' = as.character(lapply(train, function(x) length(unique(x)))), 
+                         'count_na_values' = as.character(lapply(train, function(x) sum(is.na(x)))),
+                         'first_obs' = as.character(lapply(train, function(x) as.character(first(x)))))
 
 datatable(summary_df)
 
@@ -94,7 +96,10 @@ train <- cleaning_empty_levels(train)
 test <- cleaning_empty_levels(test)
 ```
 
-We now note that the variable *channel* has only one level and thus can be ignored as it brings no information.
+We will also remove the rows that the *default* variable is NA, as the model can't learn anything from them.
+```{r}
+train <- train[-which(is.na(train$default)),]
+```
 
 ## Exploratory Data Analysis
 
@@ -102,6 +107,16 @@ From the correlation plot of the numerical variables, we see that the the variab
 ```{r}
 corrplot(cor(select_if(train, is.numeric), use = "complete.obs"))
 ```
+
+```{r}
+round(sapply(train, function(x) sum(is.na(x)))/nrow(train), 3)
+```
+
+The column *ok_since* will be dropped as it contains more than 50% of missing values; the column *channel* will be dropped as it only has 1 value to the entire dataset and the column *sign* will also be discarded as it has 38% of missing value and someone's zodiac sign shouldn't be relevant to this study. Also, the column *n_issues* will be dropped as we seen that it is highly correlated to *n_accounts* and has 26% of missing value while the first has 0%.
+```{r}
+train <- train[,-which(names(train) %in% c("ok_since","channel", "sign", "n_issues"))]
+```
+
 
 Looking at the density of the numerical variables, we see that some are highly skewed. We may want to look closer as we may find some potential outliers.
 ```{r}
@@ -125,16 +140,74 @@ select_if(train, is.numeric) %>%
 
 As the No Free Lunch theorem states, there is no such thing as "the best model". Let's apply some known ML algorithms and evaluate them to find the optimal one for our problem.
 
-The first step is to split the train dataset into the train the model will receive as input and a holdout validation dataset to evaluate the quality of the model on unseen data.
-
-K-fold Cross Validation
+We also need to be aware of how the dataset is **imbalanced** with respect to the target variable, as only `r round(sum(train$default=='True', na.rm = T)/nrow(train), 2)*100`% of the target is labeled *True.* This needs to be taken into account as looking only at metrics like Accuracy may not be a good indicator, alternatively, we should look at a good tradeoff between Sensitivity and Specificity.
 ```{r}
-control <- trainControl(method="cv", number=10) # 10-fold cv
+summary(train$default)
+```
 
+As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve) and the Log Loss Score.
+
+Altough the final output is a probability, we can also look at how it performs as a binary classifier, with the metrics: Recall, Precision, F1-Score and Confusion Matrix. We do however needm to define a threshold on this case.
+
+### Handling with Imbalanced Dataset
+As stated, we should be cautious with the fact that the 2 classes on the target variable aren't equally represented on the dataset. A simple way to overcome this is to use resampling methods like Undersampling and Oversampling. Because we have not many data, we'll go with the latter. 
+Another good way to handle this is by defining a cost function. We first need to wonder if classifying a customer as default when in reality he is not is better than the other way around. But because this needs more understanding of the business, I'll leave it as a side note.
+
+
+### Cross Validation
+The first step is to split the train dataset into the train the model will receive as input and a holdout validation dataset to evaluate the quality of the model on unseen data. We'll use a 70-30 split.
+```{r}
+set.seed(123) 
+
+train_idx <- sample(nrow(train), nrow(train)*0.7)
+test_idx <- setdiff(seq(1, nrow(train)), train_idx)
+
+validation <- train[test_idx,]
+train <- train[train_idx,]
 ```
 
 
+Now, we need to do an oversample of out training dataset so that the model won't be biased by the majority  class. A side note to oversampling however is that it can lead to overfitting, as it adds replicated observations in the original data set.
+```{r}
+set.seed(456)
+dados0 <- subset(train, train$default=='False')
+dados1 <- subset(train, train$default=='True')
+amostra0 <- sample(nrow(dados0), nrow(dados0))
+amostra1 <- sample(nrow(dados1), nrow(dados0), replace = TRUE)
+
+amostra0 <- dados0[amostra0,]
+amostra1 <- dados1[amostra1,]
+
+sample_data <- rbind(amostra0, amostra1)
+rm(amostra0, amostra1)
+```
+
+
+As the desired output is the probability, we'll start by modeling a Logistic Regression.
+```{r}
+groupvars <- colnames(select_if(train, function(x) (nlevels(x) > 1 & nlevels(x) < 36) | is.numeric(x)))
+groupvars <- groupvars[groupvars != 'default'] # removing the target
+groupvars <- groupvars[groupvars != 'n_issues'] # removing n_issues as it's highly correlated to n_accounts and has more missing values
+
+formula <- paste('default', paste(groupvars, collapse=" + "), sep=" ~ ")
+
+glm <- glm(formula, sample_data, family = binomial()) 
+```
+
+
+
 We'll start by building a Random Forest Classifier and see the feature importance.
+```{r}
+formula <- default ~ score_1 + score_2 + score_3 + score_4 +
+  score_5 + score_6 + risk_rate + amount_borrowed + borrowed_in_months + credit_limit + income +
+  gender + facebook_profile + state + real_state + n_bankruptcies + 
+  n_defaulted_loans + n_accounts
+  
+rf <- randomForest(formula, na.omit(sample_data))
+
+varImpPlot(rf)
+```
+
 ```{r}
 # Logistic Regression
 # Decision Tree
@@ -146,14 +219,10 @@ We'll start by building a Random Forest Classifier and see the feature importanc
 # Metrics: Accuracy, AUC, Recall, Precision, F1 Score
 ```
 
+K-fold Cross Validation
 ```{r}
-groupvars <- colnames(select_if(train, function(x) (nlevels(x) > 1 & nlevels(x) < 36) | is.numeric(x)))
-groupvars <- groupvars[groupvars != 'default'] # removing the target
-groupvars <- groupvars[groupvars != 'n_issues'] # removing n_issues as it's highly correlated to n_accounts and has more missing values
+control <- trainControl(method="cv", number=10) # 10-fold cv
 
-formula <- paste('default', paste(groupvars, collapse=" + "), sep=" ~ ")
-
-summary(glm(formula, train, family = binomial()))
 ```
 
 ## Conclusions
