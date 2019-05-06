@@ -18,9 +18,9 @@ This markdown contains the following sections:
 7. [Conclusions](#conclusions)
 
 ## Puzzle Overview
-As a credit company, it is important to know beforehand who is able to pay their loans and who is not. The goal of this puzzle is to build a statistical/machine learning model to figure out which clients are able to honor their debit.
+As a credit company, it is important to know beforehand who is able to pay their loans and who is not. The goal of this puzzle is to build a statistical/machine learning model to figure out which clients are able to honor their debt.
 
-The goal is to predict the probability of default, which is identified by the default variable in the training set. Thus, we are dealing with a **supervised** problem for a **binary classification** but rather than classes, the output should be the **probability.** The models that it is tested on this notebook are the Logistic Regression and Random Forest.
+The goal is to predict the probability of default, which is identified by the *default* variable in the training set. Thus, we are dealing with a **supervised** problem for a **binary classification** but rather than classes, the output should be the **probability.** The models tested in this notebook are the Logistic Regression and Random Forest.
 
 ## Libraries
 
@@ -31,12 +31,13 @@ library(dplyr) # data manipulation
 library(ggplot2) # plots
 library(caret) # classification and regression training
 library(kableExtra)
-library(DT)
 library(corrplot) # for correlation plot
 library(tidyr) 
 library(randomForest)
 library(ROCR)
 library(partykit)
+library(naniar)
+library(xgboost)
 ```
 
 ## Reading the Datasets
@@ -46,7 +47,6 @@ library(partykit)
 train <- read.csv('puzzle_train_dataset.csv')
 test <- read.csv('puzzle_test_dataset.csv')
 
-# 
 head(train,2) %>% 
   kable(caption='Train Dataset') %>% 
   kable_styling() %>% 
@@ -69,7 +69,7 @@ summary_df <- data.frame('var' = names(train),
 summary_df %>% 
   kable(caption='Variables Summary') %>% 
   kable_styling() %>% 
-  scroll_box(width = '100%', height = '50px')
+  scroll_box(width = '100%', height = '400px')
 
 ```
 
@@ -80,7 +80,7 @@ test$borrowed_in_months <- as.factor(test$borrowed_in_months)
 ```
 
 
-Our dependent variable (target) is *default*, which is a boolean value. However, we see that there are 3 levels. Inspecting, we find that there are empty imputs creating a "" level, and that this occurs to every factor variable except the *ids* column. These will be treated as missing values, as it makes no sence in none of the features, and is dangerous to keep it this way as it could lead to the model using all n dummy variables instead of (n-1).
+Our dependent variable (target) is *default*, which is a boolean value. However, we see that there are 3 levels. Inspecting, we find that there are empty inputs creating a "" level, and that this occurs to every factor variable except the *ids* column. These will be treated as missing values, as it makes no sense in none of the features, and is dangerous to keep it this way as it could lead to the model using all n dummy variables instead of (n-1).
 ```{r}
 # Structure of the categorical variables
 str(select_if(train, is.factor)) # Undesirable empty level ""
@@ -124,7 +124,7 @@ corrplot(cor(select_if(train, is.numeric), use = "complete.obs"))
 round(sapply(train, function(x) sum(is.na(x)))/nrow(train), 3)
 ```
 
-The column *ok_since* will be dropped as it contains more than 50% of missing values; the column *channel* will be dropped as it only has 1 value to the entire dataset and the column *sign* will also be discarded as it has 38% of missing value and someone's zodiac sign shouldn't be relevant to this study. Also, the column *n_issues* will be dropped as we seen that it is highly correlated to *n_accounts* and has 26% of missing value while the first has 0%.
+The column *ok_since* will be dropped as it contains more than `r `% of missing values; the column *channel* will be dropped as it only has 1 value to the entire dataset and the column *sign* will also be discarded as it has 38% of missing value and someone's zodiac sign shouldn't be relevant to this study. Also, the column *n_issues* will be dropped as we seen that it is highly correlated to *n_accounts* and has 26% of missing value while the first has 0%.
 ```{r}
 train <- train[,-which(names(train) %in% c("ok_since","channel", "sign", "n_issues"))]
 ```
@@ -168,12 +168,8 @@ summary(train$default)
 
 ### Metrics
 
-As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve), R squared and the Log Loss Score.
+As our goal is to predict the probability of default, that is, the probability of the output being of the class *True*, the following metrics will be used to evaluate our models: AUC (Area Under the ROC Curve) and the Log Loss Score.
 ```{r}
-# R squared
-r_squared <- function(model) {
-  return(round( 1 - ( summary(model)$deviance / summary(model)$null.deviance ), 3 ))
-}
 
 # Log Loss
 logLoss <- function(pred, actual){
@@ -202,10 +198,10 @@ auc <- function(pred, actual) {
 ```
 
 
-We could additionally look at how it performns as a binary classifier, with metrics like Recall, Precision, F1-Score and Confusion Matrix. We would however need to define a threshold on this case.
+We could additionally look at how it performs as a binary classifier, with metrics like Recall, Precision, F1-Score and Confusion Matrix. We would however need to define a threshold on this case.
 
 ### Handling with Imbalanced Dataset
-As stated, we should be cautious with the fact that the 2 classes on the target variable aren't equally represented on the dataset. A simple way to overcome this is to use resampling methods like Undersampling and Oversampling. Because we have not many data, we'll go with the latter. 
+As stated, we should be cautious with the fact that the 2 classes on the target variable aren't equally represented on the dataset. A simple way to overcome this is to use resampling methods like Undersampling and Oversampling. Because we don't have much data, we'll go with the latter. 
 Another good way to handle this is by defining a cost function. We first need to wonder if classifying a customer as default when in reality he is not is better than the other way around. But because this needs more understanding of the business, I'll leave it as a side note.
 
 Let's change the target to 0 and 1 to make it easier for further evaluations. 
@@ -262,7 +258,6 @@ formula <- glm$formula
 pred_glm <- predict(glm, validation, type='response')
 
 # Metrics
-r_glm <- r_squared(glm)
 auc_glm <- auc(pred_glm, validation$default)
 logloss_glm <- logLoss(pred_glm[-which(is.na(pred_glm))],
                        ifelse(validation$default==0,0,1)[-which(is.na(pred_glm))])
@@ -270,7 +265,7 @@ logloss_glm <- logLoss(pred_glm[-which(is.na(pred_glm))],
 
 ### Logistic Regression with Binary Predictors
 
-Another Logistic Regression was tested but only with binary variables. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality. Unfortunatly, it took way too many time to process the tree for categories with more than 30 levels, so that was left out. This served more of a test, and it didn't give any improvement to the last model.
+Another Logistic Regression was tested but only with binary variables. A decision tree was built to every variable in the dataset and its splits were made to categorize the numerical variables and reduce the levels of the categories with high dimensionality. Unfortunatly, it took way too much time to process the tree for categories with more than 30 levels, so that was left out. This served more of a test, and it didn't give any improvement to the last model.
 ```{r}
 binary_transf <- function(data) { 
   binary_data <- data.frame('default'=data$default)
@@ -281,10 +276,10 @@ binary_transf <- function(data) {
     tree <- partykit::ctree(default~eval(parse(text=var)), sample_data)
     rules <- list(partykit:::.list.rules.party(tree))
     if (length(unlist(rules))>1) {
-      for (i in 1:length(unlist(rules))) {
+      for (i in 1:(length(unlist(rules))-1)) {
         newVar <- paste0(var,'_',i)
         binary <- data %>% 
-          mutate(newVar=ifelse(eval(parse(text = unlist(rules)[1])) ,1,0)) %>% select(newVar)
+          mutate(newVar=ifelse(eval(parse(text = unlist(rules)[i])) ,1,0)) %>% select(newVar)
         names(binary) <- newVar
         binary_data <- cbind(binary_data, binary)
       }
@@ -303,7 +298,6 @@ glm_bin <- glm(default~., binary_train, family=binomial())
 pred_glm_bin <- predict(glm_bin, binary_validation, type='response')
 
 # Metrics
-r_glm_bin <- r_squared(glm_bin)
 auc_glm_bin <- auc(pred_glm_bin, binary_validation$default)
 logloss_glm_bin <- logLoss(pred_glm_bin[-which(is.na(pred_glm_bin))],
                        ifelse(binary_validation$default==0,0,1)[-which(is.na(pred_glm_bin))])
@@ -321,7 +315,6 @@ pred_rf <- predict(rf, validation, type='prob')
 pred_rf <- pred_rf[,2]
 
 # Metrics
-r_rf <- 1 - sum((ifelse(validation$default==0,0,1)-pred_rf)^2, na.rm = T)/sum((ifelse(validation$default==0,0,1)-mean(ifelse(validation$default==0,0,1)))^2, na.rm = T)
 auc_rf <- auc(pred_rf, validation$default)
 logloss_rf <- logLoss(pred_rf[-which(is.na(pred_rf))],
                        ifelse(validation$default==0,0,1)[-which(is.na(pred_rf))])
@@ -331,36 +324,95 @@ varImpPlot(rf)
 
 From the plot of the importance of the variables above, we see that the variables that impacts the most in the target variable are: *score_2*, *income* and *amount_borrowed*.
 
+### Missing Values
+
+The models attempted above however does not consider the amount of missing values in the test dataset. Using them will lead to NA probabilities as their predictors are missing, specially in the *credit_limit* variable. 
+```{r}
+# NA plot
+vis_miss(head(test[,-which(names(test) %in% c("ok_since","channel", "sign", "n_issues"))],300))
+```
+
+The ways to overcome this are: dropping the features with high missing value rate, imputing the missing values with a constant value (like the mean), imputing the missing value using a machine learning algorith (like kNN) or trying an approach that deals with missing values, like the XGBoost. Here is an attempt with the latter:
+
+### XGBoost
+```{r}
+
+format_data <- function(data) {
+  
+  data <- data %>% mutate_all(funs(replace(as.character(.), is.na(.), 0)))
+  info_numeric <- data %>% select(-ids) %>% select_if(is.numeric)
+
+  info_categorical <- model.matrix(~ score_1 + score_2 + borrowed_in_months + real_state + n_bankruptcies + n_defaulted_loans + facebook_profile + gender - 1, data)
+  
+  info_numeric <- cbind(info_numeric, info_categorical)
+  
+  mat <- data.matrix(info_numeric)
+  
+  return(mat)
+}
+
+
+mat_train <- format_data(sample_data)
+mat_validation <- format_data(validation)
+mat_test <- format_data(test)
+
+# Missing
+mat_test <- as.data.frame(mat_test)
+not_in_train <- setdiff(names(as.data.frame(mat_test)),names(as.data.frame(mat_train)))
+mat_test <- mat_test %>% select(-not_in_train)
+mat_test <- data.matrix(mat_test)
+
+# Labels
+labels_train <- ifelse(sample_data$default==0,0,1)
+labels_validation <- ifelse(validation$default==0,0,1)
+
+
+# Matrices
+dtrain <- xgb.DMatrix(data = mat_train, label= labels_train)
+dvalidation <- xgb.DMatrix(data = mat_validation, label= labels_validation)
+dtest <- xgb.DMatrix(data = mat_test, label = rep(NA,nrow(test)))
+
+# Model
+xgb <- xgboost(data = dtrain,
+               nround = 4,
+               objective = "binary:logistic")
+
+pred_xgb <- predict(xgb, dvalidation)
+
+# Metrics
+auc_xgb <- auc(pred_xgb, validation$default)
+logloss_xgb <- logLoss(pred_xgb,
+                       ifelse(validation$default==0,0,1))
+
+```
+
+
 
 ## Conclusions
 
 Below is the table with all the metrics of the 3 models built. 
 ```{r}
-df <- data.frame('model' = c('Logistic Reg.', 'Logistic Reg. Binary Predictors', 'Random Forest'), 
-           'R squared' = c(r_glm, r_glm_bin, r_rf), 
-           'AUC' = c(auc_glm, auc_glm_bin, auc_rf), 
-           'Log Loss' = c(logloss_glm, logloss_glm_bin, logloss_rf))
+df <- data.frame('model' = c('Logistic Reg.', 'Logistic Reg. Binary Predictors', 'Random Forest', 'XGBoost'), 
+           'AUC' = c(auc_glm, auc_glm_bin, auc_rf, auc_xgb), 
+           'Log Loss' = c(logloss_glm, logloss_glm_bin, logloss_rf,logloss_xgb))
 
 df %>% 
   kable(caption='Metrics') %>% 
   kable_styling()
 ```
 
-The metrics R squared and AUC are better when higher (best value equals to 1) and the Log Loss Score is better when lower (best value equals to 0). So we choose the Logistic Regression. 
+The metric AUC is better when higher (best value equals to 1) and the Log Loss Score is better when lower (best value equals to 0). Altough the Logistic Regression scored better, it produces a lot of NA values, so we'll go with the XGBoost that wasn't so much worse and is able to predict a probability to every client.
 ```{r}
 # ROC plot of the chosen model
-roc_auc(pred_glm, validation$default)
+roc_auc(pred_xgb, validation$default)
 ```
 
 
 ## Creating the csv file
 ```{r}
 final_predictions <- data.frame('ids' = test$ids)
-final_predictions$predictions <- predict(glm,test)
+final_predictions$predictions <- predict(xgb,dtest)
 
-write.csv(final_predictions, 'predictions.csv')
+write.csv(final_predictions, 'predictions.csv', row.names = FALSE)
 ```
-
-A final note is that the model built uses predictors that is not available for all clients in the test dataset, and for these cases it is labeled NA. In this case, a second model would be needed or collecting more data/different features.
-
 
